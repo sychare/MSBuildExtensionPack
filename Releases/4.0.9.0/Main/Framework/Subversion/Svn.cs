@@ -2,6 +2,9 @@
 // <copyright file="Svn.cs">(c) http://www.codeplex.com/MSBuildExtensionPack. This source is subject to the Microsoft Permissive License. See http://www.microsoft.com/resources/sharedsource/licensingbasics/sharedsourcelicenses.mspx. All other rights reserved.</copyright>
 // The code was written by Jozsef Fejes (http://joco.name).
 //-----------------------------------------------------------------------
+
+using System.Diagnostics;
+
 namespace MSBuild.ExtensionPack.Subversion
 {
     using System;
@@ -482,7 +485,12 @@ namespace MSBuild.ExtensionPack.Subversion
             var cmd = this.CreateCommandLineBuilder();
             cmd.AppendSwitch("-q");
             cmd.AppendFileNameIfNotNull(this.Item);
-            var output = Utilities.ExecuteWithLogging(Log, Path.Combine(SvnPath, SvnVersionExecutableName), cmd.ToString(), false);
+            var executable = Path.Combine(SvnPath, SvnVersionExecutableName);
+            var messageArgs = cmd.ToString();
+            var stw = new Stopwatch();
+            stw.Start();
+            var output = Utilities.ExecuteWithLogging(Log, executable, messageArgs, false);
+            stw.Stop();
 
             if (!this.Log.HasLoggedErrors)
             {
@@ -491,7 +499,12 @@ namespace MSBuild.ExtensionPack.Subversion
                 if (!m.Success)
                 {
                     // not versioned or really an error, we don't care
-                    Log.LogError("Version: Invalid output from SVN tool: no regex  match. Svn tool output was: {0}", output);
+                    Log.LogError(
+                        "Version: Invalid output from SVN tool: no regex match. Ran \"{0} {1}\" in {2}ms. Svn tool output was: {3}",
+                        executable,
+                        messageArgs,
+                        stw.ElapsedMilliseconds,
+                        output);
                     return;
                 }
 
